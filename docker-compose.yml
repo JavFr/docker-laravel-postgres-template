@@ -1,0 +1,51 @@
+version: "3.1"
+services:
+    app:
+      container_name: ${PROJECT_NAME}-app
+      working_dir: /app/src
+      build: ${PWD}/images/laravel
+      image: laravel
+      networks:
+          -   app-network
+      restart: on-failure
+      volumes: 
+          -   ${APP_SOURCE}:/app/src
+
+    webserver:
+      image: nginx:alpine
+      container_name: ${PROJECT_NAME}-webserver
+      working_dir: /var/wwww
+      volumes:
+          - ${APP_SOURCE}:/application
+          - ./nginx:/etc/nginx/conf.d
+      ports:
+          - "80:80"
+      networks:
+          - app-network
+
+    postgres:
+      image: postgres:9.5-alpine
+      container_name: ${PROJECT_NAME}-postgres
+      volumes:
+          - "./services/postgres/database-data:/var/lib/postgresql/data"
+      environment:
+        - POSTGRES_USER=${POSTGRES_USER}
+        - POSTGRES_PASSWORD=${POSTGRES_PASSWORD}
+        - POSTGRES_DB=${POSTGRES_DB}
+      ports:
+        - "5432:5432"
+      networks:
+        - app-network
+
+    php-fpm:
+      build: ./images/php-fpm
+      container_name: ${PROJECT_NAME}-php-fpm
+      working_dir: /application
+      volumes:
+        - ${APP_SOURCE}:/application
+        - ./images/php-fpm/php-ini-overrides.ini:/etc/php/7.4/fpm/conf.d/99-overrides.ini
+      networks:
+          - app-network
+networks:
+    app-network:
+      driver: bridge 
